@@ -1,26 +1,19 @@
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+// 1. IMPORTACIONES (Desde la CDN que te dio Firebase)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-storage.js";
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBhYIC92ClAovRCcpYxtTjDDlyKRdelpHs",
-    authDomain: "robinhub-592e9.firebaseapp.com",
-    projectId: "robinhub-592e9",
-    storageBucket: "robinhub-592e9.firebasestorage.app",
-    messagingSenderId: "715257099670",
-    appId: "1:715257099670:web:dbdfca79d34c53656cd9b7",
-    measurementId: "G-E6VTHYZVZV"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
+// 2. TU CONFIGURACIÓN REAL
+const firebaseConfig = {
+  apiKey: "AIzaSyBhYIC92ClAovRCcpYxtTjDDlyKRdelpHs",
+  authDomain: "robinhub-592e9.firebaseapp.com",
+  projectId: "robinhub-592e9",
+  storageBucket: "robinhub-592e9.firebasestorage.app",
+  messagingSenderId: "715257099670",
+  appId: "1:715257099670:web:9c3d89da39b32cbb6cd9b7",
+  measurementId: "G-9FTD4CJXKV"
+};
 
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
