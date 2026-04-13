@@ -1,29 +1,33 @@
 :root { --primary: #2ecc71; --bg: #ffffff; --black: #111; --gray: #f0f0f0; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Inter', sans-serif; background: var(--bg); }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--black); }
 
+/* NAVBAR */
 .navbar { display: flex; align-items: center; padding: 10px 25px; position: fixed; top: 0; width: 100%; background: white; z-index: 1000; border-bottom: 1px solid #ddd; gap: 20px; box-sizing: border-box; }
 .logo { font-weight: 800; font-size: 1.6rem; cursor: pointer; }
 .logo span { color: var(--primary); }
 .search-bar { flex-grow: 1; background: var(--gray); display: flex; align-items: center; padding: 10px 20px; border-radius: 30px; gap: 10px; }
 .search-bar input { border: none; background: transparent; outline: none; width: 100%; }
 
-.nav-icons { display: flex; gap: 10px; align-items: center; }
+.nav-icons { display: flex; gap: 12px; align-items: center; }
 .btn-login { background: var(--gray); border: none; padding: 10px 20px; border-radius: 20px; font-weight: 600; cursor: pointer; }
 .btn-signup { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: 700; cursor: pointer; }
 
+/* FEED */
 .feed { padding: 90px 5% 20px; column-count: 5; column-gap: 15px; max-width: 1600px; margin: 0 auto; }
-.pin { display: inline-block; width: 100%; margin-bottom: 15px; border-radius: 16px; overflow: hidden; border: 1px solid #eee; transition: 0.3s; cursor: zoom-in; }
-.pin:hover { transform: translateY(-5px); border-color: var(--primary); }
-.pin img { width: 100%; display: block; background: #f9f9f9; }
+.pin { display: inline-block; width: 100%; margin-bottom: 15px; border-radius: 16px; overflow: hidden; border: 1px solid #eee; transition: 0.3s; background: white; }
+.pin img { width: 100%; display: block; }
 .pin-info { padding: 12px; }
 .pin-info h4 { font-size: 0.85rem; margin-bottom: 4px; }
 .pin-info p { font-size: 0.75rem; color: #767676; }
-.user-tag { color: var(--primary); font-weight: 700; }
+.user-tag { color: var(--primary); font-weight: 800; }
 
+/* MODALES */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
-.modal-content { background: white; border-radius: 30px; position: relative; width: 90%; }
-.auth-box { max-width: 400px; padding: 40px; text-align: center; }
+.modal-content { background: white; border-radius: 30px; padding: 40px; position: relative; width: 90%; animation: pop 0.3s ease; }
+@keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.auth-box { max-width: 400px; text-align: center; }
 .auth-tabs { display: flex; gap: 20px; justify-content: center; margin-bottom: 20px; }
 .tab-btn { background: none; border: none; font-weight: 700; cursor: pointer; color: #767676; padding: 5px; }
 .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
@@ -31,11 +35,14 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); }
 .auth-form.active { display: block; }
 .auth-form input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; }
 
-.detail-box { max-width: 900px; }
-.modal-body { display: grid; grid-template-columns: 1.2fr 1fr; }
-.modal-body img { width: 100%; height: 500px; object-fit: cover; }
-.modal-text { padding: 40px; }
+.upload-box { max-width: 800px; }
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.preview-zone { background: var(--gray); border-radius: 15px; height: 350px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.preview-zone img { width: 100%; height: 100%; object-fit: cover; }
+.form-zone { display: flex; flex-direction: column; gap: 15px; }
+.form-zone input { padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+
 .close { position: absolute; top: 20px; right: 25px; font-size: 30px; cursor: pointer; }
 
 @media (max-width: 1200px) { .feed { column-count: 3; } }
-@media (max-width: 600px) { .feed { column-count: 2; } .modal-body { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .feed { column-count: 2; } .upload-grid { grid-template-columns: 1fr; } }
