@@ -1,8 +1,32 @@
+// 1. IMPORTACIONES DE FIREBASE
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+// 2. CONFIGURACIÓN (Tus credenciales de RobinHub)
+const firebaseConfig = {
+  apiKey: "AIzaSyBhYIC92ClAovRCcpYxtTjDDlyKRdelpHs",
+  authDomain: "robinhub-592e9.firebaseapp.com",
+  projectId: "robinhub-592e9",
+  storageBucket: "robinhub-592e9.firebasestorage.app",
+  messagingSenderId: "715257099670",
+  appId: "1:715257099670:web:9c3d89da39b32cbb6cd9b7",
+  measurementId: "G-9FTD4CJXKV"
+};
+
+// Inicializar
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
+    const feed = document.getElementById('mainFeed');
 
-    // 1. BASE DE DATOS DE 50 PINES
-    const datosPines = [
+    // --- TU BASE DE DATOS DE 50 PINES ---
+    const datosPinesEstaticos = [
         { t: "Café de Mañana", u: "CaffeineLover", c: "coffee" },
         { t: "Cimas Nevadas", u: "MountainExplorer", c: "landscape" },
         { t: "Surf en Bali", u: "WaveRider", c: "sports" },
@@ -55,88 +79,142 @@ document.addEventListener('DOMContentLoaded', () => {
         { t: "Picos de Europa", u: "SpainTravel", c: "landscape" }
     ];
 
-    const feed = document.getElementById('mainFeed');
+    // --- CARGA DE PINES (Firebase + Estáticos) ---
+    async function cargarTodoElFeed() {
+        feed.innerHTML = "";
 
-    // 2. RENDERIZAR PINES
-    datosPines.forEach((p, index) => {
+        try {
+            // A) Traer pines reales de Firebase
+            const q = query(collection(db, "pines"), orderBy("fecha", "desc"));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                const p = doc.data();
+                renderizarPin(p.titulo, p.usuario, p.imagen, true);
+            });
+        } catch (e) { console.log("Cargando solo pines estáticos..."); }
+
+        // B) Añadir los 50 pines de tu lista original
+        datosPinesEstaticos.forEach((p, index) => {
+            const imgUrl = `https://picsum.photos/seed/${index + 40}/400/${600 + (index % 3 * 100)}`;
+            renderizarPin(p.t, p.u, imgUrl, false);
+        });
+    }
+
+    function renderizarPin(titulo, usuario, img, esFirebase) {
         const pin = document.createElement('div');
         pin.className = 'pin';
-        const imgUrl = `https://picsum.photos/seed/${index + 40}/400/${600 + (index % 3 * 100)}`;
-        
         pin.innerHTML = `
-            <img src="${imgUrl}" alt="${p.t}">
+            <img src="${img}" alt="${titulo}">
             <div class="pin-info">
-                <h4>${p.t}</h4>
-                <p>Por <span class="user-tag">@${p.u}</span></p>
+                <h4>${titulo}</h4>
+                <p>Por <span class="${esFirebase ? 'user-tag' : ''}">@${usuario}</span></p>
             </div>
         `;
-        pin.onclick = () => verDetalle(p.t, p.u, imgUrl);
+        pin.onclick = () => window.verDetalle(titulo, usuario, img);
         feed.appendChild(pin);
+    }
+
+    // --- LÓGICA DE USUARIOS CON FIREBASE ---
+    onAuthStateChanged(auth, (user) => {
+        actualizarNav(user);
+        cargarTodoElFeed();
     });
 
-    // 3. LÓGICA DE USUARIOS
-    let usuarioLogueado = JSON.parse(localStorage.getItem('userRH')) || null;
-    actualizarNav();
-
-    const registerForm = document.getElementById('registerForm');
-    registerForm.addEventListener('submit', (e) => {
+    // Registro
+    document.getElementById('registerForm').onsubmit = async (e) => {
         e.preventDefault();
-        const user = document.getElementById('regUser').value;
-        const pass = document.getElementById('regPass').value;
         const email = document.getElementById('regEmail').value;
-        
-        const db = JSON.parse(localStorage.getItem('dbRH')) || [];
-        db.push({ user, pass, email });
-        localStorage.setItem('dbRH', JSON.stringify(db));
-        
-        usuarioLogueado = { user };
-        localStorage.setItem('userRH', JSON.stringify(usuarioLogueado));
-        location.reload();
-    });
+        const pass = document.getElementById('regPass').value;
+        try {
+            await createUserWithEmailAndPassword(auth, email, pass);
+            location.reload();
+        } catch (err) { alert("Error al registrar: " + err.message); }
+    };
 
-    const loginForm = document.getElementById('loginForm');
-    loginForm.addEventListener('submit', (e) => {
+    // Login
+    document.getElementById('loginForm').onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const pass = document.getElementById('loginPass').value;
-        const db = JSON.parse(localStorage.getItem('dbRH')) || [];
-        const found = db.find(u => u.email === email && u.pass === pass);
-        
-        if(found) {
-            usuarioLogueado = { user: found.user };
-            localStorage.setItem('userRH', JSON.stringify(usuarioLogueado));
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
             location.reload();
-        } else { alert("Datos incorrectos"); }
-    });
+        } catch (err) { alert("Usuario o clave incorrecta"); }
+    };
 
-    function actualizarNav() {
+    // --- SUBIR NUEVO PIN A FIREBASE ---
+    const fInput = document.getElementById('fileInput');
+    let fotoBase64 = "";
+
+    fInput.onchange = function() {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            fotoBase64 = e.target.result;
+            document.getElementById('previewImg').src = fotoBase64;
+            window.abrirModal('uploadModal');
+        };
+        reader.readAsDataURL(this.files[0]);
+    };
+
+    document.getElementById('publishBtn').onclick = async () => {
+        const t = document.getElementById('pinTitle').value;
+        if(!t || !fotoBase64) return;
+
+        const btn = document.getElementById('publishBtn');
+        btn.innerText = "Subiendo...";
+        btn.disabled = true;
+
+        try {
+            const storageRef = ref(storage, `pines/${Date.now()}.jpg`);
+            await uploadString(storageRef, fotoBase64, 'data_url');
+            const url = await getDownloadURL(storageRef);
+
+            await addDoc(collection(db, "pines"), {
+                titulo: t,
+                usuario: auth.currentUser.email.split('@')[0],
+                imagen: url,
+                fecha: Date.now()
+            });
+
+            location.reload();
+        } catch (err) { alert("Error: " + err.message); }
+    };
+
+    // --- FUNCIONES GLOBALES ---
+    function actualizarNav(user) {
         const nav = document.getElementById('navActions');
-        if(usuarioLogueado) {
+        if(user) {
             nav.innerHTML = `
                 <button class="btn-signup" onclick="document.getElementById('fileInput').click()">+ Crear</button>
-                <span style="font-weight:800">@${usuarioLogueado.user}</span>
-                <button onclick="logout()" style="border:none; background:none; color:red; cursor:pointer">Salir</button>
+                <span style="font-weight:800; margin-left:10px">@${user.email.split('@')[0]}</span>
+                <button onclick="window.logout()" style="border:none; background:none; color:red; cursor:pointer; margin-left:10px">Salir</button>
+            `;
+        } else {
+            nav.innerHTML = `
+                <button class="btn-login" onclick="window.abrirModal('authModal')">Entrar</button>
+                <button class="btn-signup" onclick="window.abrirModal('authModal')">Registrarse</button>
             `;
         }
     }
 
-    window.logout = () => { localStorage.removeItem('userRH'); location.reload(); };
+    window.logout = () => signOut(auth).then(() => location.reload());
     window.abrirModal = (id) => document.getElementById(id).style.display = 'flex';
     window.cerrarModal = (id) => document.getElementById(id).style.display = 'none';
+    
     window.verDetalle = (t, u, i) => {
         document.getElementById('detTitle').innerText = t;
         document.getElementById('detUser').innerHTML = `Publicado por <span class="user-tag">@${u}</span>`;
         document.getElementById('detImg').src = i;
-        abrirModal('detailModal');
+        window.abrirModal('detailModal');
     };
 
-    // Tabs Login/Register
-    document.getElementById('tabLogin').onclick = function() {
-        this.classList.add('active'); document.getElementById('tabRegister').classList.remove('active');
+    // Tabs
+    document.getElementById('tabLogin').onclick = () => {
+        document.getElementById('tabLogin').classList.add('active'); document.getElementById('tabRegister').classList.remove('active');
         document.getElementById('loginForm').classList.add('active'); document.getElementById('registerForm').classList.remove('active');
     };
-    document.getElementById('tabRegister').onclick = function() {
-        this.classList.add('active'); document.getElementById('tabLogin').classList.remove('active');
+    document.getElementById('tabRegister').onclick = () => {
+        document.getElementById('tabRegister').classList.add('active'); document.getElementById('tabLogin').classList.remove('active');
         document.getElementById('registerForm').classList.add('active'); document.getElementById('loginForm').classList.remove('active');
     };
 });
